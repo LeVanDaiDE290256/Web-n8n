@@ -1,0 +1,92 @@
+{
+  "name": "My workflow",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "chat-web",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.2,
+      "position": [
+        -320,
+        48
+      ],
+      "id": "5d070db4-bb50-4b33-8949-835da7a4e36e",
+      "name": "Webhook",
+      "webhookId": "ddb253a3-efaf-4cc2-8303-c328fa9f3c13"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "=\n{{ JSON.stringify({\n  success: true,\n  reply: $json.messageLower\n}) }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        368,
+        48
+      ],
+      "id": "c8223b97-6d6d-41e3-a34b-af3a099db6c4",
+      "name": "Respond to Webhook"
+    },
+    {
+      "parameters": {
+        "jsCode": "const message = $json.body.message;\n\nreturn {\n  message: message,\n  messageLower: message.toLowerCase()\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -64,
+        48
+      ],
+      "id": "3bca33e2-9842-4ff3-b606-7ef981121700",
+      "name": "Code in JavaScript"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Respond to Webhook": {
+      "main": [
+        []
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "ef903008-dad7-4d7b-8b4f-08c5a1347b67",
+  "meta": {
+    "instanceId": "f487b9016ce8de26b294fd7a220b0988d150fcff93af9f13bd4a165f1743cfa2"
+  },
+  "nodeGroups": [],
+  "id": "QUiaaVELcjwKbvkV",
+  "tags": []
+}
