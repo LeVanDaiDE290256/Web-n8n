@@ -21,13 +21,13 @@
     {
       "parameters": {
         "respondWith": "json",
-        "responseBody": "=\n{{ JSON.stringify({\n  success: true,\n  reply: $json.messageLower\n}) }}",
+        "responseBody": "\n{\n  \"success\": true,\n  \"reply\": \"n8n đã nhận tin nhắn\"\n}",
         "options": {}
       },
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.5,
       "position": [
-        368,
+        352,
         48
       ],
       "id": "c8223b97-6d6d-41e3-a34b-af3a099db6c4",
@@ -35,7 +35,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const message = $json.body.message;\n\nreturn {\n  message: message,\n  messageLower: message.toLowerCase()\n};"
+        "jsCode": "const message = $json.body.message;\n\nreturn [\n  {\n    json: {\n      message: message,\n      timestamp: new Date().toISOString()\n    }\n  }\n];"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -45,6 +45,58 @@
       ],
       "id": "3bca33e2-9842-4ff3-b606-7ef981121700",
       "name": "Code in JavaScript"
+    },
+    {
+      "parameters": {
+        "dataTableId": {
+          "__rl": true,
+          "value": "2ERYUyTJ6AEtS6rf",
+          "mode": "list",
+          "cachedResultName": "chats_message",
+          "cachedResultUrl": "/projects/y7hzwDJnPjjsKKXn/datatables/2ERYUyTJ6AEtS6rf"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "message": "={{ $json.message }}",
+            "timestamp": "={{ $json.timestamp }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "message",
+              "displayName": "message",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "timestamp",
+              "displayName": "timestamp",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        128,
+        48
+      ],
+      "id": "55629bd0-87e6-4727-8b1b-b033a792d9ed",
+      "name": "Insert row"
     }
   ],
   "pinData": {},
@@ -69,6 +121,17 @@
       "main": [
         [
           {
+            "node": "Insert row",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Insert row": {
+      "main": [
+        [
+          {
             "node": "Respond to Webhook",
             "type": "main",
             "index": 0
@@ -82,7 +145,7 @@
     "executionOrder": "v1",
     "binaryMode": "separate"
   },
-  "versionId": "ef903008-dad7-4d7b-8b4f-08c5a1347b67",
+  "versionId": "f41ee7db-405b-4388-8e12-510fefaf1a9f",
   "meta": {
     "instanceId": "f487b9016ce8de26b294fd7a220b0988d150fcff93af9f13bd4a165f1743cfa2"
   },
