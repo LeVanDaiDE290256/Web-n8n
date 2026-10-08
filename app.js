@@ -2,47 +2,44 @@ const input = document.getElementById("message-input");
 const button = document.getElementById("send-button");
 const chatBox = document.getElementById("chat-box");
 
-const N8N_WEBHOOK_URL = "http://localhost:5678/webhook-test/chat-web";
+const MESSAGES_WEBHOOK_URL = "http://localhost:5678/webhook-test/get-message";
 
-button.addEventListener("click", async () => {
-  const message = input.value.trim();
-
-  if (!message) {
-    return;
-  }
-
-  // Hiển thị tin nhắn của user
-  chatBox.innerHTML += `
-        <div class="message">
-            <b>You:</b> ${message}
-        </div>
-    `;
-
-  input.value = "";
-
+// ===============================
+// GET: Load lịch sử tin nhắn
+// ===============================
+async function loadMessages() {
   try {
-    const response = await fetch(N8N_WEBHOOK_URL, {
-      method: "POST",
+    const response = await fetch(MESSAGES_WEBHOOK_URL);
 
-      headers: {
-        "Content-Type": "application/json",
-      },
-
-      body: JSON.stringify({
-        message: message,
-      }),
-    });
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}`);
+    }
 
     const data = await response.json();
 
-    chatBox.innerHTML += `
-        <div class="message">
-            <b>n8n:</b> ${data.reply}
-        </div>
-    `;
+    console.log("Lịch sử:", data);
 
-    console.log(data);
+    if (!data.success || !Array.isArray(data.messages)) {
+      console.error("Dữ liệu không đúng:", data);
+      return;
+    }
+
+    // Hiển thị lịch sử
+    data.messages.forEach((item) => {
+      chatBox.innerHTML += `
+        <div class="message">
+          <b>You:</b> ${item.message}
+        </div>
+      `;
+    });
   } catch (error) {
-    console.error(error);
+    console.error("Lỗi loadMessages:", error);
   }
+}
+
+// ===============================
+// Khi mở trang → load lịch sử
+// ===============================
+document.addEventListener("DOMContentLoaded", () => {
+  loadMessages();
 });

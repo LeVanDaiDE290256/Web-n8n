@@ -1,84 +1,82 @@
-# Web → n8n Chat Demo
+# Web n8n – Hiển thị lịch sử tin nhắn
 
-Demo nhỏ kết nối giao diện chat HTML/CSS/JavaScript với một workflow n8n qua Webhook.
+Trang web tĩnh, viết bằng HTML, CSS và JavaScript, dùng để lấy và hiển thị các tin nhắn đã lưu trong **Data Table** của n8n.
 
-Khi người dùng gửi tin nhắn, trang web gửi `POST` đến n8n. Workflow hiện tại đọc trường `message`, chuyển nội dung sang chữ thường và trả kết quả về để hiển thị trong khung chat.
+Khi trang được mở, `app.js` gửi một request `GET` đến webhook n8n. Workflow n8n đọc toàn bộ dữ liệu trong Data Table và trả về JSON; trang web sau đó hiển thị từng tin nhắn trong khung chat.
 
-## Chức năng
+## Thành phần
 
-- Giao diện chat đơn giản, không cần framework hay cài đặt package.
-- Gửi JSON đến n8n bằng `fetch`.
-- Workflow n8n phản hồi JSON theo định dạng `{ "success": true, "reply": "..." }`.
-- Minh hoạ node **Webhook** → **Code** → **Respond to Webhook**.
+| File | Mục đích |
+| --- | --- |
+| `index.html` | Cấu trúc giao diện trang chat |
+| `style.css` | Kiểu dáng giao diện |
+| `app.js` | Gọi webhook và hiển thị lịch sử tin nhắn |
+| `web-n8n (1).json` | Workflow n8n để lấy dữ liệu từ Data Table |
 
-## Cấu trúc dự án
-
-```text
-.
-├── index.html          # Giao diện chat
-├── style.css           # Kiểu dáng giao diện
-├── app.js              # Gọi webhook n8n và hiển thị phản hồi
-└── workflow n8n.json   # Workflow để import vào n8n
-```
-
-## Yêu cầu
+## Điều kiện cần
 
 - n8n đang chạy tại `http://localhost:5678`.
-- Trình duyệt hiện đại.
+- Data Table `chats_message` đã tồn tại trong n8n và có cột `message`.
+- Một HTTP server để mở frontend, ví dụ VS Code Live Server (nút **Go Live**).
 
-## Cài đặt và chạy
+## Cài đặt workflow n8n
 
 1. Mở n8n tại `http://localhost:5678`.
-2. Trong n8n, chọn **Import from File** và chọn file `workflow n8n.json`.
-3. Mở workflow **My workflow**.
-4. Nhấn **Execute workflow** để webhook thử nghiệm sẵn sàng nhận request.
-5. Phục vụ thư mục dự án bằng một HTTP server. Ví dụ, nếu đã cài Python:
+2. Chọn **Import from File** và chọn `web-n8n (1).json`.
+3. Trong node **Get row(s)**, chọn đúng Data Table chứa lịch sử chat nếu Data Table của bạn khác `chats_message`.
+4. Để thử nghiệm, mở workflow và bấm **Execute workflow**.
 
-   ```bash
-   python -m http.server 5500
-   ```
-
-6. Mở `http://localhost:5500` trên trình duyệt, nhập tin nhắn và nhấn **Send**.
-
-## Luồng hoạt động
+Workflow sử dụng webhook:
 
 ```text
-Browser
-  └─ POST /webhook-test/chat-web  { "message": "Xin Chào" }
-       └─ n8n Webhook → Code in JavaScript → Respond to Webhook
-            └─ { "success": true, "reply": "xin chào" }
+GET /webhook-test/get-message
 ```
+
+Sau khi chạy thử, workflow sẽ đọc tất cả các dòng trong Data Table và trả về dữ liệu theo dạng:
+
+```json
+{
+  "success": true,
+  "messages": [
+    { "message": "Xin chào" },
+    { "message": "Nội dung tin nhắn khác" }
+  ]
+}
+```
+
+## Chạy frontend
+
+1. Mở thư mục project bằng VS Code.
+2. Mở file `index.html`.
+3. Bấm **Go Live** ở thanh trạng thái VS Code.
+4. Trình duyệt sẽ mở trang web. Khi tải trang, lịch sử tin nhắn sẽ được gọi từ n8n và hiển thị.
+
+Bạn cũng có thể chạy một web server khác, ví dụ:
+
+```bash
+python -m http.server 5500
+```
+
+Sau đó mở `http://localhost:5500`.
 
 ## Cấu hình webhook
 
-URL đang dùng trong [app.js](./app.js) là:
+URL hiện tại trong `app.js` là:
 
 ```js
-const N8N_WEBHOOK_URL = "http://localhost:5678/webhook-test/chat-web";
+const MESSAGES_WEBHOOK_URL = "http://localhost:5678/webhook-test/get-message";
 ```
 
-Đây là **test URL**, nên chỉ hoạt động khi workflow đang ở trạng thái **Execute workflow** trong n8n. Để dùng lâu dài, hãy bật workflow thành **Active** và đổi URL thành:
+Đây là **test URL**, nên chỉ hoạt động khi bạn đã bấm **Execute workflow** trong n8n.
+
+Để dùng ổn định, hãy bật workflow thành **Active**, rồi đổi URL trong `app.js` thành:
 
 ```js
-const N8N_WEBHOOK_URL = "http://localhost:5678/webhook/chat-web";
+const MESSAGES_WEBHOOK_URL = "http://localhost:5678/webhook/get-message";
 ```
 
-Nếu frontend và n8n chạy ở hai domain/port khác nhau và trình duyệt báo lỗi CORS, hãy cấu hình CORS trên n8n hoặc chạy frontend qua proxy phù hợp.
+## Lưu ý
 
-## Dữ liệu trao đổi
+Phiên bản hiện tại chỉ **đọc và hiển thị lịch sử tin nhắn**. Ô nhập và nút **Send** trong giao diện chưa được gắn xử lý để gửi tin nhắn mới.
 
-Request từ frontend:
-
-```json
-{ "message": "Hello N8N" }
-```
-
-Response từ workflow:
-
-```json
-{ "success": true, "reply": "hello n8n" }
-```
-
-## Tuỳ biến
-
-Sửa node **Code in JavaScript** trong n8n để thay phần chuyển chữ thường bằng logic riêng, chẳng hạn gọi AI, cơ sở dữ liệu hoặc một API khác. Giữ trường `reply` trong response nếu muốn dùng nguyên phần hiển thị hiện tại ở frontend.
+Nếu trình duyệt báo lỗi CORS, hãy cấu hình CORS cho n8n hoặc dùng proxy phù hợp giữa frontend và n8n.
