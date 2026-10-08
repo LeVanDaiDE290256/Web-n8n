@@ -1,0 +1,217 @@
+{
+  "name": "web-n8n",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "chat-web",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "b6f80c65-dd64-4385-8b5e-7911e28a0c39",
+      "name": "Zalo Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -544,
+        720
+      ],
+      "webhookId": "4dfc85c6-5eef-46d9-84d2-532ed5ead0e9"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "user-message",
+              "name": "userMessage",
+              "value": "={{ $json.body.message }}",
+              "type": "string"
+            },
+            {
+              "id": "167044bd-62c1-4ee5-8eaf-3306b31eb1ad",
+              "name": "sender",
+              "value": "={{ $json.body.sender }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "48ed7134-e196-4475-8acf-088d68a550af",
+      "name": "Extract Data",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        -288,
+        720
+      ]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.userMessage }}",
+        "options": {
+          "systemMessage": "# Role & Persona\nBạn là Javis - Trợ lý AI thông minh, chuyên nghiệp và tận tâm. Nhiệm vụ của bạn là tiếp nhận câu hỏi của người dùng, tiến hành nghiên cứu, tra cứu dữ liệu chính xác và phản hồi lại một cách mạch lạc, rõ ràng.\n\n# Core Capabilities & Guidelines\n1. Hỏi đáp & Trợ lý thông minh (Q&A Assistant):\n- Giao tiếp lịch sự, thân thiện, rõ ràng và đúng trọng tâm câu hỏi.\n- Trình bày câu trả lời trực quan bằng cấu trúc danh sách, gạch đầu dòng hoặc Markdown khi cần thiết để người dùng dễ đọc.\n- Nếu câu hỏi chưa rõ ý, hãy khéo léo yêu cầu người dùng cung cấp thêm thông tin.\n\n2. Nghiên cứu & Tra cứu dữ liệu (Research & Tools):\n- Khi người dùng hỏi về thông tin hệ thống, dữ liệu, sản phẩm hoặc các vấn đề cần tra cứu chuyên sâu, BẮT BUỘC phải sử dụng công cụ (Tools) được cung cấp (ví dụ: kho_tool) để lấy dữ liệu thực tế. Tuyệt đối không tự bịa đặt thông tin (hallucination).\n- Tổng hợp, phân tích và chắt lọc các kết quả tìm kiếm thành một câu trả lời hoàn chỉnh, súc tích cho người dùng.\n\n3. Xử lý ngữ cảnh (Context Memory):\n- Tận dụng triệt để lịch sử trò chuyện (Chat Memory) để nắm bắt ngữ cảnh xuyên suốt, nhớ các nội dung mà người dùng đã đề cập trước đó trong cùng phiên chat để duy trì mạch hội thoại liền mạch.\n\n# Output Style\n- Ngôn ngữ: Tiếng Việt.\n- Định dạng: Trình bày sạch sẽ, chuyên nghiệp, hỗ trợ định dạng văn bản web (như đậm, nghiêng, danh sách liệt kê) để tối ưu trải nghiệm đọc trên màn hình máy tính/điện thoại."
+        }
+      },
+      "id": "a57f69a2-1b36-4234-9e58-93cc9d4d2d4e",
+      "name": "AI Agent",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        16,
+        720
+      ],
+      "retryOnFail": true,
+      "maxTries": 6,
+      "waitBetweenTries": 20000,
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-3.1-flash-lite",
+        "options": {
+          "temperature": 0.85
+        }
+      },
+      "id": "07fd7292-22e4-4081-ad49-9fcd387d8c7a",
+      "name": "OpenAI Chat Model",
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1.1,
+      "position": [
+        0,
+        896
+      ],
+      "retryOnFail": true,
+      "maxTries": 6,
+      "waitBetweenTries": 20000,
+      "credentials": {
+        "googlePalmApi": {
+          "id": "kFUDYfhnDkOCXqKs",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "web_session_01",
+        "tableName": "chat_messages",
+        "contextWindowLength": 10
+      },
+      "id": "008892aa-ad64-401e-b40d-16f930f44ed1",
+      "name": "Chat Memory",
+      "type": "@n8n/n8n-nodes-langchain.memoryPostgresChat",
+      "typeVersion": 1.4,
+      "position": [
+        112,
+        1008
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "ogZ77r9K6IHzoX3r",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ reply: $json.output }) }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        496,
+        704
+      ],
+      "id": "fb56cc8c-78b7-4a10-9772-5af49b37a9c0",
+      "name": "Respond to Webhook"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Zalo Webhook": {
+      "main": [
+        [
+          {
+            "node": "Extract Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Data": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Chat Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "54b1bf32-79ba-47c4-9f18-610c3b2c68e8",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "f487b9016ce8de26b294fd7a220b0988d150fcff93af9f13bd4a165f1743cfa2"
+  },
+  "nodeGroups": [
+    {
+      "id": "6a9903f7-987b-41c5-bd94-57faab4b8426",
+      "nodeIds": [
+        "a57f69a2-1b36-4234-9e58-93cc9d4d2d4e",
+        "07fd7292-22e4-4081-ad49-9fcd387d8c7a",
+        "008892aa-ad64-401e-b40d-16f930f44ed1"
+      ],
+      "name": "AI Agent tra loi",
+      "description": "Agent soạn câu trả lời theo giọng đồng nghiệp vui tính, nhớ hội thoại và gọi công cụ tra thời tiết/tin tức khi cần"
+    }
+  ],
+  "id": "QUiaaVELcjwKbvkV",
+  "tags": []
+}

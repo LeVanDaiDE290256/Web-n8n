@@ -30,6 +30,7 @@ button.addEventListener("click", async () => {
 
       body: JSON.stringify({
         message: message,
+        sender: "user",
       }),
     });
 

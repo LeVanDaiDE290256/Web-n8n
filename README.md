@@ -1,84 +1,236 @@
-# Web → n8n Chat Demo
+# Guideline chạy Web n8n AI Chat
 
-Demo nhỏ kết nối giao diện chat HTML/CSS/JavaScript với một workflow n8n qua Webhook.
+Tài liệu này hướng dẫn chạy project từ đầu. Project gồm ba phần:
 
-Khi người dùng gửi tin nhắn, trang web gửi `POST` đến n8n. Workflow hiện tại đọc trường `message`, chuyển nội dung sang chữ thường và trả kết quả về để hiển thị trong khung chat.
+1. **PostgreSQL**: chạy bằng `docker-compose.yml`, dùng cho Chat Memory của n8n.
+2. **n8n**: import workflow và cấu hình Gemini + PostgreSQL credential.
+3. **Frontend**: chạy bằng `Dockerfile` hoặc VS Code Live Server.
 
-## Chức năng
+> `Dockerfile` chỉ đóng gói frontend. `docker-compose.yml` hiện chỉ chạy PostgreSQL. n8n vẫn cần chạy riêng.
 
-- Giao diện chat đơn giản, không cần framework hay cài đặt package.
-- Gửi JSON đến n8n bằng `fetch`.
-- Workflow n8n phản hồi JSON theo định dạng `{ "success": true, "reply": "..." }`.
-- Minh hoạ node **Webhook** → **Code** → **Respond to Webhook**.
-
-## Cấu trúc dự án
+## 1. Kiểm tra các file cần có
 
 ```text
-.
-├── index.html          # Giao diện chat
-├── style.css           # Kiểu dáng giao diện
-├── app.js              # Gọi webhook n8n và hiển thị phản hồi
-└── workflow n8n.json   # Workflow để import vào n8n
+Dockerfile              # Docker image cho frontend Nginx
+docker-compose.yml      # PostgreSQL container
+.env                    # Biến PostgreSQL
+index.html              # Giao diện
+style.css               # CSS
+app.js                  # Gọi webhook n8n
+web-n8n (2).json        # Workflow để import vào n8n
 ```
 
-## Yêu cầu
+## 2. Chuẩn bị
 
+Cài các công cụ sau:
+
+- Docker Desktop và bảo đảm Docker Desktop đang mở.
 - n8n đang chạy tại `http://localhost:5678`.
-- Trình duyệt hiện đại.
+- Tài khoản/API key Google Gemini.
 
-## Cài đặt và chạy
+Kiểm tra `.env` có nội dung sau:
 
-1. Mở n8n tại `http://localhost:5678`.
-2. Trong n8n, chọn **Import from File** và chọn file `workflow n8n.json`.
-3. Mở workflow **My workflow**.
-4. Nhấn **Execute workflow** để webhook thử nghiệm sẵn sàng nhận request.
-5. Phục vụ thư mục dự án bằng một HTTP server. Ví dụ, nếu đã cài Python:
+```env
+POSTGRES_USER=admin
+POSTGRES_PASSWORD=123456
+POSTGRES_DB=logchat_db
+```
 
-   ```bash
-   python -m http.server 5500
+Không commit `.env` nếu dùng mật khẩu hoặc API key thật.
+
+## 3. Chạy database PostgreSQL
+
+Mở PowerShell trong thư mục project và chạy:
+
+```powershell
+docker compose up -d
+```
+
+Kiểm tra PostgreSQL đã chạy:
+
+```powershell
+docker compose ps
+```
+
+Kết quả mong đợi: service `postgres` có trạng thái `running`.
+
+Thông tin kết nối database:
+
+```text
+Host: localhost
+Port: 5433
+Database: logchat_db
+Username: admin
+Password: 123456
+SSL: tắt
+```
+
+Xem log nếu database không chạy được:
+
+```powershell
+docker compose logs -f postgres
+```
+
+## 4. Import workflow vào n8n
+
+1. Mở `http://localhost:5678`.
+2. Chọn **Import from File**.
+3. Chọn file `web-n8n (2).json`.
+4. Mở workflow vừa import.
+
+Sau khi import, cần cấu hình lại credential. Workflow JSON không bao gồm API key và password kết nối database của bạn.
+
+### 4.1. Cấu hình Gemini
+
+1. Mở node **OpenAI Chat Model**.
+2. Node này thực tế dùng **Google Gemini**.
+3. Tạo hoặc chọn Google Gemini credential có API key của bạn.
+4. Lưu node.
+
+### 4.2. Cấu hình PostgreSQL Chat Memory
+
+1. Mở node **Chat Memory**.
+2. Tạo hoặc chọn PostgreSQL credential.
+3. Nhập:
+
+   ```text
+   Host: localhost
+   Port: 5433
+   Database: logchat_db
+   User: admin
+   Password: 123456
+   SSL: tắt
    ```
 
-6. Mở `http://localhost:5500` trên trình duyệt, nhập tin nhắn và nhấn **Send**.
+4. Lưu credential và node.
 
-## Luồng hoạt động
+> Nếu n8n đang chạy trong một Docker container khác trên Windows, Host không dùng `localhost`; dùng `host.docker.internal`.
+
+### 4.3. Kiểm tra Webhook và response
+
+Trong node **Zalo Webhook**, đặt:
 
 ```text
-Browser
-  └─ POST /webhook-test/chat-web  { "message": "Xin Chào" }
-       └─ n8n Webhook → Code in JavaScript → Respond to Webhook
-            └─ { "success": true, "reply": "xin chào" }
+HTTP Method: POST
+Path: chat-web
+Respond: Using 'Respond to Webhook' Node
 ```
 
-## Cấu hình webhook
+Trong node **Respond to Webhook**:
 
-URL đang dùng trong [app.js](./app.js) là:
+```text
+Respond With: JSON
+```
+
+Response Body phải trả JSON với trường `reply`. Nếu dùng Expression cho cả ô, nhập:
 
 ```js
-const N8N_WEBHOOK_URL = "http://localhost:5678/webhook-test/chat-web";
+{{ JSON.stringify({ reply: $json.output }) }}
 ```
 
-Đây là **test URL**, nên chỉ hoạt động khi workflow đang ở trạng thái **Execute workflow** trong n8n. Để dùng lâu dài, hãy bật workflow thành **Active** và đổi URL thành:
-
-```js
-const N8N_WEBHOOK_URL = "http://localhost:5678/webhook/chat-web";
-```
-
-Nếu frontend và n8n chạy ở hai domain/port khác nhau và trình duyệt báo lỗi CORS, hãy cấu hình CORS trên n8n hoặc chạy frontend qua proxy phù hợp.
-
-## Dữ liệu trao đổi
-
-Request từ frontend:
+Phần xem trước phải có dạng:
 
 ```json
-{ "message": "Hello N8N" }
+{"reply":"Nội dung phản hồi của AI"}
 ```
 
-Response từ workflow:
+Không để kết quả bắt đầu bằng `=` hoặc hiển thị `[object Object]`, vì frontend sẽ không đọc được response đó.
 
-```json
-{ "success": true, "reply": "hello n8n" }
+## 5. Chạy workflow n8n
+
+### Chế độ thử nghiệm
+
+1. Trong workflow, bấm **Execute workflow**.
+2. Giữ workflow ở trạng thái chờ request.
+3. Frontend dùng URL test:
+
+   ```js
+   http://localhost:5678/webhook-test/chat-web
+   ```
+
+### Chế độ sử dụng lâu dài
+
+1. Bật toggle **Active** cho workflow.
+2. Trong `app.js`, đổi URL thành:
+
+   ```js
+   const N8N_WEBHOOK_URL = "http://localhost:5678/webhook/chat-web";
+   ```
+
+3. Lưu `app.js` và build lại frontend nếu bạn chạy bằng Docker.
+
+## 6. Chạy frontend bằng Dockerfile
+
+`Dockerfile` dùng Nginx để phục vụ `index.html`, `style.css` và `app.js`.
+
+### 6.1. Build Docker image
+
+Trong thư mục có `Dockerfile`, chạy:
+
+```powershell
+docker build -t web-n8n-frontend .
 ```
 
-## Tuỳ biến
+### 6.2. Chạy frontend container
 
-Sửa node **Code in JavaScript** trong n8n để thay phần chuyển chữ thường bằng logic riêng, chẳng hạn gọi AI, cơ sở dữ liệu hoặc một API khác. Giữ trường `reply` trong response nếu muốn dùng nguyên phần hiển thị hiện tại ở frontend.
+```powershell
+docker run --name web-n8n-frontend -p 8080:80 -d web-n8n-frontend
+```
+
+Mở trình duyệt tại:
+
+```text
+http://localhost:8080
+```
+
+### 6.3. Khi sửa frontend
+
+Docker image không tự cập nhật source. Sau khi sửa `index.html`, `style.css` hoặc `app.js`, chạy:
+
+```powershell
+docker rm -f web-n8n-frontend
+docker build -t web-n8n-frontend .
+docker run --name web-n8n-frontend -p 8080:80 -d web-n8n-frontend
+```
+
+## 7. Cách test chat
+
+1. Đảm bảo PostgreSQL, n8n workflow và frontend đều đang chạy.
+2. Mở `http://localhost:8080`.
+3. Nhập tin nhắn và bấm **Send**.
+4. Web gửi request sau đến n8n:
+
+   ```json
+   {
+     "message": "Xin chào",
+     "sender": "user"
+   }
+   ```
+
+5. n8n phải trả:
+
+   ```json
+   {
+     "reply": "Chào bạn! Tôi có thể giúp gì?"
+   }
+   ```
+
+6. Câu trả lời xuất hiện trong khung chat.
+
+## 8. Xử lý lỗi thường gặp
+
+| Lỗi | Cách xử lý |
+| --- | --- |
+| `port is already allocated` | Đổi cổng phía trái trong `docker-compose.yml`, ví dụ `5434:5432`; sau đó credential n8n phải dùng port `5434`. |
+| Không kết nối được PostgreSQL | Chạy `docker compose ps`, kiểm tra `.env`, rồi xem `docker compose logs -f postgres`. |
+| Webhook test không hoạt động | Bấm **Execute workflow** trước khi gửi từ web. |
+| Workflow Active nhưng web không gọi được | Dùng `/webhook/chat-web`, không dùng `/webhook-test/chat-web`. |
+| Web không hiện câu trả lời | Node Respond to Webhook phải trả JSON có `reply`, không phải text thuần. |
+| `Invalid JSON in Response Body` | Kiểm tra expression response; kết quả phải là `{"reply":"..."}` và không có dấu `=` ở đầu. |
+| Lỗi CORS | Cấu hình CORS trong n8n hoặc chạy frontend/n8n phía sau cùng một domain/proxy. |
+
+## 9. Gửi project cho người khác
+
+Gửi source code, `Dockerfile`, `docker-compose.yml`, workflow JSON và README. Không gửi `.env` thật hoặc Gemini API key.
+
+Người nhận cần tự tạo `.env`, chạy database bằng `docker compose up -d`, tự tạo Gemini/PostgreSQL credential trong n8n, import workflow, rồi build frontend theo mục 6.
