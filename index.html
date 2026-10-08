@@ -8,13 +8,53 @@
 </head>
 <body>
   <div class="chat-container">
-    <h2>Web → n8n Test</h2>
+    <header class="chat-header">
+      <h2>Javis</h2>
+      <button id="new-conversation-button" class="new-conversation-button" type="button">
+        Cuộc hội thoại mới
+      </button>
+    </header>
     <div id="chat-box"></div>
     <div class="input-area">
-      <input type="text" id="message-input" placeholder="Nhập tin nhắn...">
-      <button id="send-button">Send</button>
+      <p id="chat-status" class="chat-status" role="status" aria-live="polite" hidden></p>
+      <div class="composer-shell">
+        <button class="composer-icon-button attach-button" type="button" aria-label="Thêm nội dung" title="Thêm nội dung">
+          <span aria-hidden="true">+</span>
+        </button>
+
+        <div class="message-composer">
+          <textarea
+            id="message-input"
+            rows="1"
+            maxlength="1000"
+            placeholder="Viết tin nhắn..."
+            aria-label="Nội dung tin nhắn"
+            aria-describedby="message-counter"
+            spellcheck="true"
+          ></textarea>
+          <span id="message-counter" class="message-counter sr-only" aria-live="polite">0 / 1000</span>
+        </div>
+
+        <div class="composer-tools" aria-label="Công cụ nhập tin nhắn">
+          <button class="composer-icon-button" type="button" aria-label="Nhập bằng giọng nói" title="Nhập bằng giọng nói">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 14.5a3.5 3.5 0 0 0 3.5-3.5V6a3.5 3.5 0 0 0-7 0v5a3.5 3.5 0 0 0 3.5 3.5Zm6-3.5a6 6 0 0 1-12 0M12 17v4m-3 0h6" /></svg>
+          </button>
+          <button class="composer-icon-button" type="button" aria-label="Chế độ giọng nói" title="Chế độ giọng nói">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 10v4m4-7v10m4-13v16m4-12v8m4-5v2" /></svg>
+          </button>
+          <button class="composer-icon-button chevron-button" type="button" aria-label="Mở thêm công cụ" title="Mở thêm công cụ">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m7 10 5 5 5-5" /></svg>
+          </button>
+        </div>
+
+        <button id="send-button" class="send-button" type="button" disabled aria-label="Gửi tin nhắn" title="Gửi tin nhắn">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h13m-5-5 5 5-5 5" /></svg>
+        </button>
+      </div>
     </div>
   </div>
-  <script src="app.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/dompurify/dist/purify.min.js"></script>
+  <script type="module" src="js/main.js"></script>
 </body>
 </html>

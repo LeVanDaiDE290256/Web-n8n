@@ -1,0 +1,165 @@
+{
+  "name": "get log chat",
+  "nodes": [
+    {
+      "parameters": {
+        "path": "chat-history",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.2,
+      "position": [
+        -224,
+        0
+      ],
+      "id": "4b1d97e1-75f4-4f61-95fb-0c5783e996f2",
+      "name": "Webhook",
+      "webhookId": "ac1d91eb-3204-4ef7-812d-4e25c65bbd61"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "daf0f605-249c-4b88-9eb4-1c7a24f8dd45",
+              "leftValue": "={{ Boolean($json.query?.session_id) }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        0,
+        0
+      ],
+      "id": "26f6509d-324d-4a01-8eba-60767cb0b2cc",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT\n  id,\n  message->>'type' AS role,\n  message->>'content' AS content\nFROM chat_messages\nWHERE session_id = $1\nORDER BY id ASC;",
+        "options": {
+          "queryReplacement": "={{ $json.query.session_id }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.7,
+      "position": [
+        256,
+        -128
+      ],
+      "id": "bcabcbae-5987-4c97-bc70-cbdd0b37c5c3",
+      "name": "Execute a SQL query",
+      "alwaysOutputData": true,
+      "credentials": {
+        "postgres": {
+          "id": "ogZ77r9K6IHzoX3r",
+          "name": "Logchat_n8n"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({\n  ok: true,\n  type: \"history\",\n  reply: \"\",\n  data: {\n    messages: $input.all()\n      .filter(item => item.json.id !== undefined)\n      .map(item => ({\n        id: item.json.id,\n        role: item.json.role,\n        content: item.json.content\n      }))\n  }\n}) }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        480,
+        -128
+      ],
+      "id": "10aa2718-6c1f-4083-934d-aeceefae7e77",
+      "name": "Respond 200"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({\n  ok: false,\n  type: \"error\",\n  reply: \"Thiếu session_id.\",\n  data: null\n}) }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        256,
+        112
+      ],
+      "id": "54dbadf2-edf9-4c7d-9d06-f6d387af1588",
+      "name": "Respond 400"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Execute a SQL query",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond 400",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Execute a SQL query": {
+      "main": [
+        [
+          {
+            "node": "Respond 200",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "2333aa03-2dbb-4dd3-b5b7-0dbde0bda436",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "f487b9016ce8de26b294fd7a220b0988d150fcff93af9f13bd4a165f1743cfa2"
+  },
+  "nodeGroups": [],
+  "id": "p8cEwbFB6DXFodZ7",
+  "tags": []
+}
